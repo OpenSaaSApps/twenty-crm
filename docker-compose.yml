@@ -1,0 +1,58 @@
+services:
+  app:
+    image: twentycrm/twenty:latest
+    container_name: twenty-crm
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - SERVER_URL=${{SERVER_URL}}
+      - PG_DATABASE_URL=${{PG_DATABASE_URL}}
+      - REDIS_URL=${{REDIS_URL}}
+      - ACCESS_TOKEN_SECRET=${{ACCESS_TOKEN_SECRET}}
+      - LOGIN_TOKEN_SECRET=${{LOGIN_TOKEN_SECRET}}
+      - REFRESH_TOKEN_SECRET=${{REFRESH_TOKEN_SECRET}}
+      - FILE_TOKEN_SECRET=${{FILE_TOKEN_SECRET}}
+      - STORAGE_TYPE=${{STORAGE_TYPE}}
+    volumes:
+      - app_data:/data
+    networks:
+      - internal
+
+  worker:
+    image: twentycrm/twenty:latest
+    restart: unless-stopped
+    command: ["node", "packages/twenty-server/dist/src/queue-worker/queue-worker.js"]
+    environment:
+      - SERVER_URL=${SERVER_URL}
+      - PG_DATABASE_URL=${PG_DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - ACCESS_TOKEN_SECRET=${ACCESS_TOKEN_SECRET}
+    networks:
+      - internal
+
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: twenty
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-twenty}
+      POSTGRES_DB: twenty
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks:
+      - internal
+
+volumes:
+  postgres_data:
+volumes:
+  app_data:
+
+networks:
+  internal:
